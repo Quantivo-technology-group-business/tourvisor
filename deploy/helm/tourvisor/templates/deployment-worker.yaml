@@ -1,0 +1,44 @@
+{{- if .Values.worker.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tourvisor.fullname" . }}-worker
+  labels:
+    {{- include "tourvisor.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "tourvisor.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "tourvisor.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+    spec:
+      containers:
+        - name: worker
+          image: "{{ .Values.image.app.repository }}:{{ .Values.image.app.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.app.pullPolicy }}
+          command: ["php", "/var/www/html/bc-cms/artisan", "queue:work", "--tries=3", "--timeout=90"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "tourvisor.fullname" . }}-config
+            - secretRef:
+                name: {{ include "tourvisor.fullname" . }}-secret
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.persistence.storage.enabled }}
+            - name: storage
+              mountPath: /var/www/html/bc-cms/storage
+            {{- end }}
+      volumes:
+        {{- if .Values.persistence.storage.enabled }}
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ include "tourvisor.fullname" . }}-storage-pvc
+        {{- end }}
+{{- end }}

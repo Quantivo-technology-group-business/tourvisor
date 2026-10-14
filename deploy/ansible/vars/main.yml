@@ -1,0 +1,22 @@
+app_name: "tourvisor"
+app_directory: "/opt/tourvisor"
+repo_url: "git@github.com:johnwatike/tourvisor.git"
+repo_branch: "main"
+
+# Docker & App Configuration
+app_env: "production"
+app_debug: false
+app_url: "https://tourvisor.yourdomain.com"
+web_port: 80
+
+# Database
+db_database: "tourvisor"
+db_username: "tourvisor_user"
+db_password: "CHANGE_THIS_IN_PROD_DB_PASS"
+db_root_password: "CHANGE_THIS_IN_PROD_ROOT_PASS"
+
+# Redis
+redis_port: 6379
+
+# Admin / System
+app_key: "base64:QxLhDm6tg22cy6QcijKCXCYF4fDO3kptPjQSscp9Cs8="

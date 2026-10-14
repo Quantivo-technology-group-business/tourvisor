@@ -1,0 +1,148 @@
+# Default values for tourvisor.
+# Declare variables to be passed into templates.
+
+global:
+  environment: production
+
+replicaCount: 2
+
+image:
+  app:
+    repository: tourvisor-app
+    tag: "4.0.2"
+    pullPolicy: IfNotPresent
+  web:
+    repository: nginx
+    tag: "1.27-alpine"
+    pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podSecurityContext:
+  fsGroup: 82 # www-data in alpine
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 82
+
+appConfig:
+  appName: "Tourvisor"
+  appEnv: "production"
+  appDebug: false
+  appUrl: "https://tourvisor.example.com"
+  dbConnection: "mysql"
+  dbHost: "tourvisor-mysql"
+  dbPort: 3306
+  dbDatabase: "tourvisor"
+  redisHost: "tourvisor-redis"
+  redisPort: 6379
+  cacheDriver: "redis"
+  sessionDriver: "redis"
+  queueConnection: "redis"
+  mailMailer: "smtp"
+  mailHost: "smtp.mailgun.org"
+  mailPort: 587
+  mailEncryption: "tls"
+  mailFromName: "Tourvisor"
+  mailFromAddress: "no-reply@tourvisor.example.com"
+  autoMigrate: true
+  cacheConfig: true
+
+secrets:
+  appKey: "base64:QxLhDm6tg22cy6QcijKCXCYF4fDO3kptPjQSscp9Cs8="
+  dbUsername: "tourvisor"
+  dbPassword: "CHANGE_ME_IN_PRODUCTION_DB_PASS"
+  redisPassword: ""
+  mailUsername: ""
+  mailPassword: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "128m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+  hosts:
+    - host: tourvisor.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: tourvisor-tls
+      hosts:
+        - tourvisor.example.com
+
+persistence:
+  uploads:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteMany
+    size: 20Gi
+  storage:
+    enabled: true
+    storageClass: ""
+    accessMode: ReadWriteMany
+    size: 10Gi
+
+resources:
+  app:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  web:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+worker:
+  enabled: true
+  replicaCount: 2
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+scheduler:
+  enabled: true
+  schedule: "* * * * *"
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi

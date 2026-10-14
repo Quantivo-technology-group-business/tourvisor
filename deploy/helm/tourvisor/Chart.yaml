@@ -1,0 +1,14 @@
+apiVersion: v2
+name: tourvisor
+description: Production Helm Chart for Tourvisor (Laravel 12 / Booking System)
+type: application
+version: 1.0.0
+appVersion: "4.0.2"
+keywords:
+  - tourvisor
+  - laravel
+  - booking
+  - php
+maintainers:
+  - name: Tourvisor Team
+    email: devops@tourvisor.com

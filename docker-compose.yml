@@ -1,0 +1,193 @@
+services:
+  # ========================================================
+  # Web Server (Nginx)
+  # ========================================================
+  web:
+    image: nginx:1.27-alpine
+    container_name: tourvisor-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - uploads_data:/var/www/html/public_html/uploads
+    depends_on:
+      - app
+    networks:
+      - tourvisor-network
+
+  # ========================================================
+  # Core PHP-FPM Application
+  # ========================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    image: tourvisor-app:latest
+    container_name: tourvisor-app
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-Tourvisor}
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-tourvisor}
+      DB_USERNAME: ${DB_USERNAME:-tourvisor_user}
+      DB_PASSWORD: ${DB_PASSWORD:-secret_password}
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      AUTO_MIGRATE: "false"
+    volumes:
+      - .:/var/www/html
+      - storage_data:/var/www/html/bc-cms/storage
+      - uploads_data:/var/www/html/public_html/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tourvisor-network
+
+  # ========================================================
+  # Laravel Queue Worker
+  # ========================================================
+  queue:
+    image: tourvisor-app:latest
+    container_name: tourvisor-queue
+    restart: unless-stopped
+    command: ["php", "/var/www/html/bc-cms/artisan", "queue:work", "--tries=3", "--timeout=90"]
+    environment:
+      APP_NAME: ${APP_NAME:-Tourvisor}
+      APP_ENV: ${APP_ENV:-local}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-tourvisor}
+      DB_USERNAME: ${DB_USERNAME:-tourvisor_user}
+      DB_PASSWORD: ${DB_PASSWORD:-secret_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+    volumes:
+      - .:/var/www/html
+      - storage_data:/var/www/html/bc-cms/storage
+      - uploads_data:/var/www/html/public_html/uploads
+    depends_on:
+      - app
+      - redis
+      - db
+    networks:
+      - tourvisor-network
+
+  # ========================================================
+  # Laravel Cron / Scheduler
+  # ========================================================
+  cron:
+    image: tourvisor-app:latest
+    container_name: tourvisor-cron
+    restart: unless-stopped
+    command: ["sh", "-c", "while true; do php /var/www/html/bc-cms/artisan schedule:run --verbose --no-interaction; sleep 60; done"]
+    environment:
+      APP_NAME: ${APP_NAME:-Tourvisor}
+      APP_ENV: ${APP_ENV:-local}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-tourvisor}
+      DB_USERNAME: ${DB_USERNAME:-tourvisor_user}
+      DB_PASSWORD: ${DB_PASSWORD:-secret_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - .:/var/www/html
+      - storage_data:/var/www/html/bc-cms/storage
+    depends_on:
+      - app
+      - db
+    networks:
+      - tourvisor-network
+
+  # ========================================================
+  # Database (MySQL 8.0)
+  # ========================================================
+  db:
+    image: mysql:8.0
+    container_name: tourvisor-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-tourvisor}
+      MYSQL_USER: ${DB_USERNAME:-tourvisor_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret_password}
+    ports:
+      - "${DB_PORT_FORWARD:-3306}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root_secret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tourvisor-network
+
+  # ========================================================
+  # In-Memory Cache / Session (Redis)
+  # ========================================================
+  redis:
+    image: redis:7-alpine
+    container_name: tourvisor-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT_FORWARD:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tourvisor-network
+
+  # ========================================================
+  # Local Email Testing UI (Mailpit)
+  # ========================================================
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: tourvisor-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP
+    networks:
+      - tourvisor-network
+
+# ========================================================
+# Networks & Volumes
+# ========================================================
+networks:
+  tourvisor-network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local
+  redis_data:
+    driver: local
+  storage_data:
+    driver: local
+  uploads_data:
+    driver: local

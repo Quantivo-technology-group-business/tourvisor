@@ -1,0 +1,35 @@
+{{- if .Values.persistence.uploads.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "tourvisor.fullname" . }}-uploads-pvc
+  labels:
+    {{- include "tourvisor.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.uploads.accessMode | quote }}
+  {{- if .Values.persistence.uploads.storageClass }}
+  storageClassName: {{ .Values.persistence.uploads.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.uploads.size | quote }}
+---
+{{- end }}
+{{- if .Values.persistence.storage.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "tourvisor.fullname" . }}-storage-pvc
+  labels:
+    {{- include "tourvisor.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.persistence.storage.accessMode | quote }}
+  {{- if .Values.persistence.storage.storageClass }}
+  storageClassName: {{ .Values.persistence.storage.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.storage.size | quote }}
+{{- end }}

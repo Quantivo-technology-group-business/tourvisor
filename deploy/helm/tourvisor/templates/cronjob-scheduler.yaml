@@ -1,0 +1,35 @@
+{{- if .Values.scheduler.enabled -}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "tourvisor.fullname" . }}-scheduler
+  labels:
+    {{- include "tourvisor.labels" . | nindent 4 }}
+    app.kubernetes.io/component: scheduler
+spec:
+  schedule: {{ .Values.scheduler.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "tourvisor.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: scheduler
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: scheduler
+              image: "{{ .Values.image.app.repository }}:{{ .Values.image.app.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.app.pullPolicy }}
+              command: ["php", "/var/www/html/bc-cms/artisan", "schedule:run"]
+              envFrom:
+                - configMapRef:
+                    name: {{ include "tourvisor.fullname" . }}-config
+                - secretRef:
+                    name: {{ include "tourvisor.fullname" . }}-secret
+              resources:
+                {{- toYaml .Values.scheduler.resources | nindent 16 }}
+{{- end }}

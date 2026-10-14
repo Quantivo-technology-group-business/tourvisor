@@ -1,0 +1,15 @@
+aws_region          = "us-east-1"
+environment         = "production"
+project_name        = "tourvisor"
+vpc_cidr            = "10.0.0.0/16"
+public_subnets      = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnets     = ["10.0.10.0/24", "10.0.11.0/24"]
+database_subnets    = ["10.0.20.0/24", "10.0.21.0/24"]
+eks_cluster_version = "1.29"
+node_instance_types = ["t3.medium"]
+db_instance_class   = "db.t3.medium"
+db_allocated_storage= 20
+db_name             = "tourvisor"
+db_username         = "tourvisor_admin"
+db_password         = "YourStrongPasswordHere123!"
+redis_node_type     = "cache.t3.micro"

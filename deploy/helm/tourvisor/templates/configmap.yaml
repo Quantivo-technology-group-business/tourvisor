@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tourvisor.fullname" . }}-config
+  labels:
+    {{- include "tourvisor.labels" . | nindent 4 }}
+data:
+  APP_NAME: {{ .Values.appConfig.appName | quote }}
+  APP_ENV: {{ .Values.appConfig.appEnv | quote }}
+  APP_DEBUG: {{ .Values.appConfig.appDebug | quote }}
+  APP_URL: {{ .Values.appConfig.appUrl | quote }}
+  DB_CONNECTION: {{ .Values.appConfig.dbConnection | quote }}
+  DB_HOST: {{ .Values.appConfig.dbHost | quote }}
+  DB_PORT: {{ .Values.appConfig.dbPort | quote }}
+  DB_DATABASE: {{ .Values.appConfig.dbDatabase | quote }}
+  REDIS_HOST: {{ .Values.appConfig.redisHost | quote }}
+  REDIS_PORT: {{ .Values.appConfig.redisPort | quote }}
+  CACHE_STORE: {{ .Values.appConfig.cacheDriver | quote }}
+  SESSION_DRIVER: {{ .Values.appConfig.sessionDriver | quote }}
+  QUEUE_CONNECTION: {{ .Values.appConfig.queueConnection | quote }}
+  MAIL_MAILER: {{ .Values.appConfig.mailMailer | quote }}
+  MAIL_HOST: {{ .Values.appConfig.mailHost | quote }}
+  MAIL_PORT: {{ .Values.appConfig.mailPort | quote }}
+  MAIL_ENCRYPTION: {{ .Values.appConfig.mailEncryption | quote }}
+  MAIL_FROM_NAME: {{ .Values.appConfig.mailFromName | quote }}
+  MAIL_FROM_ADDRESS: {{ .Values.appConfig.mailFromAddress | quote }}
+  AUTO_MIGRATE: {{ .Values.appConfig.autoMigrate | quote }}
+  CACHE_CONFIG: {{ .Values.appConfig.cacheConfig | quote }}

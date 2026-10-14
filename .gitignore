@@ -1,0 +1,8 @@
+.DS_Store
+*/.DS_Store
+/.idea/*
+!.idea/codeStyles/*
+/.fleet
+/.vscode
+/.idea
+/public_html/uploads/0000

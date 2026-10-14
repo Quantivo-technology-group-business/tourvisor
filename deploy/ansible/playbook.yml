@@ -1,0 +1,105 @@
+---
+- name: Deploy Tourvisor with Docker and Docker Compose
+  hosts: webservers
+  become: true
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Update apt cache and install prerequisites
+      apt:
+        update_cache: yes
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - git
+          - ufw
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker APT repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker CE and Docker Compose Plugin
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker service is running and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create application directory
+      file:
+        path: "{{ app_directory }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: Clone or pull Tourvisor repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_directory }}"
+        version: "{{ repo_branch }}"
+        force: yes
+      become: false
+
+    - name: Create production .env in bc-cms
+      copy:
+        dest: "{{ app_directory }}/bc-cms/.env"
+        content: |
+          APP_NAME={{ app_name }}
+          APP_ENV={{ app_env }}
+          APP_KEY={{ app_key }}
+          APP_DEBUG={{ app_debug }}
+          APP_URL={{ app_url }}
+
+          DB_CONNECTION=mysql
+          DB_HOST=db
+          DB_PORT=3306
+          DB_DATABASE={{ db_database }}
+          DB_USERNAME={{ db_username }}
+          DB_PASSWORD={{ db_password }}
+
+          CACHE_STORE=redis
+          SESSION_DRIVER=redis
+          QUEUE_CONNECTION=redis
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+
+          AUTO_MIGRATE=true
+          CACHE_CONFIG=true
+        mode: '0600'
+        owner: "{{ ansible_user }}"
+
+    - name: Build and start Tourvisor containers with Docker Compose
+      command: docker compose up -d --build
+      args:
+        chdir: "{{ app_directory }}"
+
+    - name: Verify running containers
+      command: docker compose ps
+      args:
+        chdir: "{{ app_directory }}"
+      register: compose_ps
+
+    - name: Display status
+      debug:
+        var: compose_ps.stdout_lines
